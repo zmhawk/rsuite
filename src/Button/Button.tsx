@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import SafeAnchor from '../SafeAnchor';
 import Ripple from '../Ripple';
 import { isOneOf, useClassNames } from '../utils';
-import { TypeAttributes, StandardProps } from '../@types/common';
+import { TypeAttributes, WithAsProps, RsRefForwardingComponent } from '../@types/common';
 
-export interface ButtonProps extends StandardProps, React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends WithAsProps, React.HTMLAttributes<HTMLElement> {
   /** A button can have different appearances. */
   appearance?: TypeAttributes.Appearance;
 
@@ -30,9 +30,6 @@ export interface ButtonProps extends StandardProps, React.ButtonHTMLAttributes<H
   /** A button can show it is currently unable to be interacted with */
   disabled?: boolean;
 
-  /** Called when the button is clicked */
-  onClick?: (event: React.SyntheticEvent) => void;
-
   /** Ripple after button click */
   ripple?: boolean;
 
@@ -40,71 +37,83 @@ export interface ButtonProps extends StandardProps, React.ButtonHTMLAttributes<H
   type?: 'button' | 'reset' | 'submit';
 }
 
-const Button = React.forwardRef((props: ButtonProps, ref: React.Ref<HTMLButtonElement>) => {
-  const {
-    active,
-    appearance = 'default',
-    block,
-    className,
-    children,
-    classPrefix = 'btn',
-    color,
-    as: Component = 'button',
-    disabled,
-    loading,
-    ripple = true,
-    size,
-    type = 'button',
-    ...rest
-  } = props;
+const defaultProps: Partial<ButtonProps> = {
+  appearance: 'default',
+  classPrefix: 'btn',
+  ripple: true
+};
 
-  const { withClassPrefix, prefix, merge } = useClassNames(classPrefix);
-  const classes = merge(
-    className,
-    withClassPrefix(appearance, color, size, {
+const Button: RsRefForwardingComponent<'button', ButtonProps> = React.forwardRef(
+  (props: ButtonProps, ref) => {
+    const {
+      as,
       active,
+      appearance,
+      block,
+      className,
+      children,
+      classPrefix,
+      color,
       disabled,
       loading,
-      block
-    })
-  );
+      ripple,
+      size,
+      type: typeProp,
+      ...rest
+    } = props;
 
-  const rippleElement = ripple && !isOneOf(appearance, ['link', 'ghost']) ? <Ripple /> : null;
-  const spin = <span className={prefix`spin`} />;
+    const { withClassPrefix, prefix, merge } = useClassNames(classPrefix);
+    const classes = merge(
+      className,
+      withClassPrefix(appearance, color, size, {
+        active,
+        disabled,
+        loading,
+        block
+      })
+    );
 
-  if (Component === 'button' && rest.href) {
+    const rippleElement = ripple && !isOneOf(appearance, ['link', 'ghost']) ? <Ripple /> : null;
+    const spin = <span className={prefix`spin`} />;
+
+    if (rest.href) {
+      return (
+        <SafeAnchor {...rest} as={as} ref={ref} aria-disabled={disabled} className={classes}>
+          {loading && spin}
+          {children}
+          {rippleElement}
+        </SafeAnchor>
+      );
+    }
+
+    const Component = as || 'button';
+    const type = typeProp || (Component === 'button' ? 'button' : undefined);
+
     return (
-      <SafeAnchor {...rest} ref={ref} aria-disabled={disabled} className={classes}>
+      <Component
+        {...rest}
+        type={type}
+        ref={ref}
+        disabled={disabled}
+        aria-disabled={disabled}
+        className={classes}
+      >
         {loading && spin}
         {children}
         {rippleElement}
-      </SafeAnchor>
+      </Component>
     );
   }
-
-  return (
-    <Component
-      {...rest}
-      type={type}
-      ref={ref}
-      disabled={disabled}
-      aria-disabled={disabled}
-      className={classes}
-    >
-      {loading && spin}
-      {children}
-      {rippleElement}
-    </Component>
-  );
-});
+);
 
 Button.displayName = 'Button';
+Button.defaultProps = defaultProps;
 Button.propTypes = {
+  as: PropTypes.elementType,
   active: PropTypes.bool,
   appearance: PropTypes.oneOf(['default', 'primary', 'link', 'subtle', 'ghost']),
   block: PropTypes.bool,
   children: PropTypes.node,
-  as: PropTypes.elementType,
   color: PropTypes.oneOf(['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet']),
   disabled: PropTypes.bool,
   href: PropTypes.string,

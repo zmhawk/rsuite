@@ -1,121 +1,112 @@
-import * as React from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
-import classNames from 'classnames';
+import partial from 'lodash/partial';
 import { addDays, format, getDate, isSameDay } from '../utils/dateUtils';
-
-import { defaultProps, getUnhandledProps, prefix } from '../utils';
-import IntlContext from '../IntlProvider/IntlContext';
+import { useClassNames } from '../utils';
 import { zonedDate } from '../utils/timeZone';
+import { useCalendarContext } from './CalendarContext';
+import { RsRefForwardingComponent, WithAsProps } from '../@types/common';
 
-export interface TableRowProps {
+export interface TableRowProps extends WithAsProps {
   weekendDate?: Date;
-  selected?: Date;
-  timeZone?: string;
-  className?: string;
-  classPrefix?: string;
-  showWeekNumbers?: boolean;
-  isoWeek?: boolean;
-  onSelect?: (date: Date, event: React.MouseEvent<HTMLDivElement>) => void;
-  disabledDate?: (date: Date) => boolean;
   inSameMonth?: (date: Date) => boolean;
-  renderCell?: (date: Date) => React.ReactNode;
 }
+const defaultProps: Partial<TableRowProps> = {
+  weekendDate: new Date(),
+  classPrefix: 'calendar-table',
+  as: 'div'
+};
 
-class TableRow extends React.PureComponent<TableRowProps> {
-  static contextType = IntlContext;
-  static propTypes = {
-    weekendDate: PropTypes.instanceOf(Date),
-    selected: PropTypes.instanceOf(Date),
-    timeZone: PropTypes.string,
-    className: PropTypes.string,
-    classPrefix: PropTypes.string,
-    onSelect: PropTypes.func,
-    disabledDate: PropTypes.func,
-    inSameMonth: PropTypes.func,
-    renderCell: PropTypes.func,
-    isoWeek: PropTypes.bool
-  };
-  static defaultProps = {
-    selected: new Date(),
-    weekendDate: new Date()
-  };
+const TableRow: RsRefForwardingComponent<'div', TableRowProps> = React.forwardRef(
+  (props: TableRowProps, ref) => {
+    const { as: Component, className, classPrefix, inSameMonth, weekendDate, ...rest } = props;
+    const {
+      date: selected = new Date(),
+      disabledDate,
+      formatDate,
+      isoWeek,
+      locale: { formattedDayPattern, today } = {},
+      onSelect,
+      renderCell,
+      showWeekNumbers,
+      timeZone
+    } = useCalendarContext();
+    const { prefix, merge } = useClassNames(classPrefix);
 
-  addPrefix = (name: string) => prefix(this.props.classPrefix)(name);
+    const handleSelect = (
+      date: Date,
+      disabled: boolean | void,
+      event: React.MouseEvent<HTMLDivElement>
+    ) => {
+      if (disabled) {
+        return;
+      }
+      onSelect?.(date, event);
+    };
 
-  handleSelect = (
-    date: Date,
-    disabled: boolean | void,
-    event: React.MouseEvent<HTMLDivElement>
-  ) => {
-    if (disabled) {
-      return;
-    }
-    this.props.onSelect?.(date, event);
-  };
+    const renderDays = () => {
+      const formatStr = formattedDayPattern || 'yyyy-MM-dd';
+      const days = [];
+      const todayDate = zonedDate(timeZone);
 
-  renderDays() {
-    const { weekendDate, disabledDate, inSameMonth, selected, renderCell, timeZone } = this.props;
-    const { formatDate, formattedDayPattern, today } = this.context || {};
-    const formatStr = formattedDayPattern || 'yyyy-MM-dd';
-    const days = [];
-    const todayDate = zonedDate(timeZone);
+      for (let i = 0; i < 7; i += 1) {
+        const thisDate = addDays(weekendDate, i);
+        const disabled = disabledDate?.(thisDate);
+        const isToday = isSameDay(thisDate, todayDate);
+        const classes = merge(prefix('cell'), {
+          [prefix('cell-un-same-month')]: !(inSameMonth && inSameMonth(thisDate)),
+          [prefix('cell-is-today')]: isToday,
+          [prefix('cell-selected')]: isSameDay(thisDate, selected),
+          [prefix('cell-disabled')]: disabled
+        });
 
-    for (let i = 0; i < 7; i += 1) {
-      const thisDate = addDays(weekendDate, i);
-      const disabled = disabledDate?.(thisDate);
-      const isToday = isSameDay(thisDate, todayDate);
-      const classes = classNames(this.addPrefix('cell'), {
-        [this.addPrefix('cell-un-same-month')]: !(inSameMonth && inSameMonth(thisDate)),
-        [this.addPrefix('cell-is-today')]: isToday,
-        [this.addPrefix('cell-selected')]: isSameDay(thisDate, selected),
-        [this.addPrefix('cell-disabled')]: disabled
-      });
-
-      const title = formatDate ? formatDate(thisDate, formatStr) : format(thisDate, formatStr);
-      days.push(
-        <div
-          key={title}
-          className={classes}
-          role="menu"
-          tabIndex={-1}
-          title={isToday ? `${title} (${today})` : title}
-          onClick={this.handleSelect.bind(this, thisDate, disabled)}
-        >
-          <div className={this.addPrefix('cell-content')}>
-            <span className={this.addPrefix('cell-day')}>{getDate(thisDate)}</span>
-            {renderCell && renderCell(thisDate)}
+        const title = formatDate ? formatDate(thisDate, formatStr) : format(thisDate, formatStr);
+        days.push(
+          <div
+            key={title}
+            className={classes}
+            role="cell"
+            tabIndex={-1}
+            title={isToday ? `${title} (${today})` : title}
+            onClick={partial(handleSelect, thisDate, disabled)}
+          >
+            <div className={prefix('cell-content')} role="button">
+              <span className={prefix('cell-day')}>{getDate(thisDate)}</span>
+              {renderCell && renderCell(thisDate)}
+            </div>
           </div>
+        );
+      }
+      return days;
+    };
+
+    const renderWeekNumber = () => {
+      return (
+        <div className={prefix('cell-week-number')} role="cell">
+          {format(props.weekendDate, isoWeek ? 'I' : 'w')}
         </div>
       );
-    }
-    return days;
-  }
+    };
 
-  renderWeekNumber() {
-    return (
-      <div className={this.addPrefix('cell-week-number')}>
-        {format(this.props.weekendDate, this.props.isoWeek ? 'I' : 'w')}
-      </div>
-    );
-  }
-
-  render() {
-    const { className, showWeekNumbers, ...rest } = this.props;
-
-    const classes = classNames(this.addPrefix('row'), className);
-    const unhandled = getUnhandledProps(TableRow, rest);
+    const classes = merge(className, prefix('row'));
 
     return (
-      <div {...unhandled} className={classes}>
-        {showWeekNumbers && this.renderWeekNumber()}
-        {this.renderDays()}
-      </div>
+      <Component {...rest} ref={ref} role="row" className={classes}>
+        {showWeekNumbers && renderWeekNumber()}
+        {renderDays()}
+      </Component>
     );
   }
-}
+);
 
-const enhance = defaultProps<TableRowProps>({
-  classPrefix: 'calendar-table'
-});
+TableRow.displayName = 'TableRow';
+TableRow.propTypes = {
+  weekendDate: PropTypes.instanceOf(Date),
+  className: PropTypes.string,
+  classPrefix: PropTypes.string,
+  inSameMonth: PropTypes.func
+};
 
-export default enhance(TableRow);
+TableRow.defaultProps = defaultProps;
+
+export default TableRow;

@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Breadcrumb from '../index';
-import { createTestContainer, getDOMNode, getStyle, toRGB, inChrome } from '@test/testUtils';
+import { createTestContainer, getStyle, toRGB, inChrome } from '@test/testUtils';
 
 import '../styles/index';
 
@@ -15,7 +15,7 @@ describe('BreadcrumbItem styles', () => {
       </Breadcrumb>,
       createTestContainer()
     );
-    const dom = getDOMNode(instanceRef.current);
+    const dom = instanceRef.current;
     const itemDom = dom.firstElementChild;
     const separatorDom = dom.querySelector('.rs-breadcrumb-separator');
     const a = itemDom.querySelector('a');
@@ -33,7 +33,7 @@ describe('BreadcrumbItem styles', () => {
       </Breadcrumb>,
       createTestContainer()
     );
-    const dom = getDOMNode(instanceRef.current);
+    const dom = instanceRef.current;
     const li = dom.firstElementChild;
     assert.equal(getStyle(li, 'color'), toRGB('#8e8e93'));
   });

@@ -1,11 +1,9 @@
 import React from 'react';
+import { ReplaceProps } from './utils';
 
 export interface StandardProps {
   /** The prefix of the component CSS class */
   classPrefix?: string;
-
-  /** You can use a custom element for this component */
-  as?: React.ElementType | string;
 
   /** Additional classes */
   className?: string;
@@ -17,32 +15,51 @@ export interface StandardProps {
   style?: React.CSSProperties;
 }
 
-export interface AnimationEventProps {
-  /** Callback fired before the Modal transitions in */
-  onEnter?: (node: null | Element | Text) => void;
-
-  /** Callback fired as the Modal begins to transition in */
-  onEntering?: (node: null | Element | Text) => void;
-
-  /** Callback fired after the Modal finishes transitioning in */
-  onEntered?: (node: null | Element | Text) => void;
-
-  /** Callback fired right before the Modal transitions out */
-  onExit?: (node: null | Element | Text) => void;
-
-  /** Callback fired as the Modal begins to transition out */
-  onExiting?: (node: null | Element | Text) => void;
-
-  /** Callback fired after the Modal finishes transitioning out */
-  onExited?: (node: null | Element | Text) => void;
+export interface WithAsProps<As extends React.ElementType | string = React.ElementType>
+  extends StandardProps {
+  /** You can use a custom element for this component */
+  as?: As;
 }
 
-export interface PickerBaseProps<LocaleType = any> extends StandardProps, AnimationEventProps {
+export interface RsRefForwardingComponent<T extends React.ElementType, P = unknown> {
+  <As extends React.ElementType = T>(
+    props: React.PropsWithChildren<ReplaceProps<As, WithAsProps<As> & P>>,
+    context?: any
+  ): React.ReactElement | null;
+  propTypes?: any;
+  contextTypes?: any;
+  defaultProps?: Partial<P>;
+  displayName?: string;
+}
+
+export interface AnimationEventProps {
+  /** Callback fired before the Modal transitions in */
+  onEnter?: (node?: null | Element | Text) => void;
+
+  /** Callback fired as the Modal begins to transition in */
+  onEntering?: (node?: null | Element | Text) => void;
+
+  /** Callback fired after the Modal finishes transitioning in */
+  onEntered?: (node?: null | Element | Text) => void;
+
+  /** Callback fired right before the Modal transitions out */
+  onExit?: (node?: null | Element | Text) => void;
+
+  /** Callback fired as the Modal begins to transition out */
+  onExiting?: (node?: null | Element | Text) => void;
+
+  /** Callback fired after the Modal finishes transitioning out */
+  onExited?: (node?: null | Element | Text) => void;
+}
+
+export type PickerAppearance = 'default' | 'subtle';
+
+export interface PickerBaseProps<LocaleType = any> extends WithAsProps, AnimationEventProps {
   /** locale */
   locale?: LocaleType;
 
   /** A picker can have different appearances. */
-  appearance?: 'default' | 'subtle';
+  appearance?: PickerAppearance;
 
   /** Format picker to appear inside a content block */
   block?: boolean;
@@ -57,7 +74,7 @@ export interface PickerBaseProps<LocaleType = any> extends StandardProps, Animat
   disabled?: boolean;
 
   /** You can use a custom element for this component */
-  toggleAs?: React.ElementType | string;
+  toggleAs?: React.ElementType;
 
   /** A CSS class to apply to the Menu DOM node. */
   menuClassName?: string;
@@ -97,9 +114,6 @@ export interface PickerBaseProps<LocaleType = any> extends StandardProps, Animat
 
   /** Custom render extra footer */
   renderExtraFooter?: () => React.ReactNode;
-
-  /** Position of ref */
-  positionRef?: React.RefObject<any>;
 }
 
 export interface FormControlBaseProps<ValueType = any> {
@@ -110,7 +124,7 @@ export interface FormControlBaseProps<ValueType = any> {
   value?: ValueType;
 
   /** Called after the value has been changed */
-  onChange?: (value: ValueType, event: React.SyntheticEvent<HTMLElement>) => void;
+  onChange?: (value: ValueType, event: React.SyntheticEvent) => void;
 
   /** Set the component to be disabled and cannot be entered */
   disabled?: boolean;
@@ -151,7 +165,7 @@ export interface FormControlPickerProps<
   value?: ValueType;
 
   /** Called after the value has been changed */
-  onChange?: (value: ValueType, event: React.SyntheticEvent<HTMLElement>) => void;
+  onChange?: (value: ValueType, event: React.SyntheticEvent) => void;
 }
 
 export declare namespace TypeAttributes {
@@ -193,11 +207,6 @@ export interface ItemDataType {
   groupBy?: string;
   parent?: ItemDataType;
   children?: ItemDataType[];
-}
 
-export interface RefForwardingComponent<P, I = HTMLDivElement>
-  extends React.ForwardRefExoticComponent<P> {
-  (
-    props: React.PropsWithChildren<{ children?: React.ReactNode; ref?: React.Ref<I> }>
-  ): React.ReactElement | null;
+  loading?: boolean;
 }

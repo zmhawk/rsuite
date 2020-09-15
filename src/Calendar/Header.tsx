@@ -1,140 +1,112 @@
-import * as React from 'react';
+import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
-import classNames from 'classnames';
-import { prefix, getUnhandledProps, defaultProps } from '../utils';
-import IntlContext from '../IntlProvider/IntlContext';
+import { useClassNames } from '../utils';
 import FormattedDate from '../IntlProvider/FormattedDate';
+import { useCalendarContext } from './CalendarContext';
+import { RsRefForwardingComponent, WithAsProps } from '../@types/common';
 
-export interface HeaderProps {
-  date: Date;
-  showMonth?: boolean;
-  showDate?: boolean;
-  showTime?: boolean;
-  format?: string;
-  classPrefix?: string;
-  className?: string;
+export interface HeaderProps extends WithAsProps {
   disabledBackward?: boolean;
   disabledForward?: boolean;
-  showMeridian?: boolean;
-  onMoveForward?: () => void;
+  disabledTime?: (date: Date) => boolean;
   onMoveBackward?: () => void;
+  onMoveForward?: () => void;
+  onToggleMeridian?: (event: React.MouseEvent) => void;
   onToggleMonthDropdown?: (event: React.MouseEvent) => void;
   onToggleTimeDropdown?: (event: React.MouseEvent) => void;
-  onToggleMeridian?: (event: React.MouseEvent) => void;
-  disabledDate?: (date: Date) => boolean;
-  disabledTime?: (date: Date) => boolean;
   renderTitle?: (date: Date) => React.ReactNode;
   renderToolbar?: (date: Date) => React.ReactNode;
+  showDate?: boolean;
+  showMeridian?: boolean;
+  showMonth?: boolean;
+  showTime?: boolean;
 }
 
-class Header extends React.PureComponent<HeaderProps> {
-  static contextType = IntlContext;
-  static propTypes = {
-    date: PropTypes.instanceOf(Date),
-    onMoveForward: PropTypes.func,
-    onMoveBackward: PropTypes.func,
-    onToggleMonthDropdown: PropTypes.func,
-    onToggleTimeDropdown: PropTypes.func,
-    onToggleMeridian: PropTypes.func,
-    showMonth: PropTypes.bool,
-    showDate: PropTypes.bool,
-    showTime: PropTypes.bool,
-    format: PropTypes.string,
-    disabledDate: PropTypes.func,
-    disabledTime: PropTypes.func,
-    classPrefix: PropTypes.string,
-    className: PropTypes.string,
-    disabledBackward: PropTypes.bool,
-    disabledForward: PropTypes.bool,
-    showMeridian: PropTypes.bool,
-    renderTitle: PropTypes.func,
-    renderToolbar: PropTypes.func
-  };
-  static defaultProps = {
-    date: new Date()
-  };
-  getTimeFormat() {
-    const { format, showMeridian } = this.props;
-    const timeFormat = [];
+const defaultProps: Partial<HeaderProps> = {
+  classPrefix: 'calendar-header',
+  as: 'div'
+};
 
-    if (!format) {
-      return '';
-    }
-
-    if (/([Hh])/.test(format)) {
-      timeFormat.push(showMeridian ? 'hh' : 'HH');
-    }
-    if (/m/.test(format)) {
-      timeFormat.push('mm');
-    }
-    if (/s/.test(format)) {
-      timeFormat.push('ss');
-    }
-
-    return timeFormat.join(':');
-  }
-
-  getDateFormat() {
-    const { showDate, showMonth } = this.props;
-    const { formattedDayPattern, formattedMonthPattern } = this.context || {};
-    if (showDate) {
-      return formattedDayPattern || 'yyyy-MM-dd';
-    } else if (showMonth) {
-      return formattedMonthPattern || 'yyyy-MM';
-    }
-
-    return 'yyyy';
-  }
-  addPrefix = (name: string) => prefix(this.props.classPrefix)(name);
-  renderTitle() {
-    const { date, renderTitle } = this.props;
-
-    if (renderTitle) {
-      return renderTitle(date);
-    }
-
-    return date && <FormattedDate date={date} formatStr={this.getDateFormat()} />;
-  }
-  render() {
+const Header: RsRefForwardingComponent<'div', HeaderProps> = React.forwardRef(
+  (props: HeaderProps, ref) => {
     const {
-      date,
-      onMoveForward,
-      onMoveBackward,
-      onToggleMonthDropdown,
-      onToggleTimeDropdown,
-      onToggleMeridian,
-      showTime,
-      showDate,
-      showMonth,
-      classPrefix,
+      as: Component,
       className,
-      disabledDate,
-      disabledTime,
+      classPrefix,
       disabledBackward,
       disabledForward,
+      disabledTime,
+      onMoveBackward,
+      onMoveForward,
+      onToggleMeridian,
+      onToggleMonthDropdown,
+      onToggleTimeDropdown,
+      renderTitle: renderTitleProp,
       renderToolbar,
+      showDate,
       showMeridian,
+      showMonth,
+      showTime,
       ...rest
-    } = this.props;
+    } = props;
+    const { locale, date = new Date(), format, disabledDate } = useCalendarContext();
+    const { prefix, withClassPrefix, merge } = useClassNames(classPrefix);
 
-    const dateTitleClasses = classNames(this.addPrefix('title'), this.addPrefix('title-date'), {
-      [this.addPrefix('error')]: disabledDate?.(date)
+    const getTimeFormat = useCallback(() => {
+      const timeFormat = [];
+
+      if (!format) {
+        return '';
+      }
+
+      if (/([Hh])/.test(format)) {
+        timeFormat.push(showMeridian ? 'hh' : 'HH');
+      }
+      if (/m/.test(format)) {
+        timeFormat.push('mm');
+      }
+      if (/s/.test(format)) {
+        timeFormat.push('ss');
+      }
+
+      return timeFormat.join(':');
+    }, [format, showMeridian]);
+
+    const getDateFormat = useCallback(() => {
+      if (showDate) {
+        return locale?.formattedDayPattern || 'yyyy-MM-dd';
+      } else if (showMonth) {
+        return locale?.formattedMonthPattern || 'yyyy-MM';
+      }
+
+      return 'yyyy';
+    }, [locale?.formattedDayPattern, locale?.formattedMonthPattern, showDate, showMonth]);
+
+    const renderTitle = useCallback(
+      () =>
+        renderTitleProp?.(date) ??
+        (date && <FormattedDate date={date} formatStr={getDateFormat()} />),
+      [date, getDateFormat, renderTitleProp]
+    );
+
+    const dateTitleClasses = merge(prefix('title'), prefix('title-date'), {
+      [prefix('error')]: disabledDate?.(date)
     });
 
-    const timeTitleClasses = classNames(this.addPrefix('title'), this.addPrefix('title-time'), {
-      [this.addPrefix('error')]: disabledTime?.(date)
+    const timeTitleClasses = merge(prefix('title'), prefix('title-time'), {
+      [prefix('error')]: disabledTime?.(date)
     });
 
-    const backwardClass = classNames(this.addPrefix('backward'), {
-      [this.addPrefix('btn-disabled')]: disabledBackward
+    const backwardClass = merge(prefix('backward'), {
+      [prefix('btn-disabled')]: disabledBackward
     });
 
-    const forwardClass = classNames(this.addPrefix('forward'), {
-      [this.addPrefix('btn-disabled')]: disabledForward
+    const forwardClass = merge(prefix('forward'), {
+      [prefix('btn-disabled')]: disabledForward
     });
 
     const monthToolbar = (
-      <div className={this.addPrefix('month-toolbar')}>
+      <div className={prefix('month-toolbar')}>
         <i
           className={backwardClass}
           role="button"
@@ -147,7 +119,7 @@ class Header extends React.PureComponent<HeaderProps> {
           className={dateTitleClasses}
           onClick={onToggleMonthDropdown}
         >
-          {this.renderTitle()}
+          {renderTitle()}
         </span>
         <i
           className={forwardClass}
@@ -159,46 +131,66 @@ class Header extends React.PureComponent<HeaderProps> {
     );
 
     const hasMonth = showDate || showMonth;
-    const classes = classNames(classPrefix, className, {
-      [this.addPrefix('has-month')]: hasMonth,
-      [this.addPrefix('has-time')]: showTime
-    });
-    const unhandled = getUnhandledProps(Header, rest);
+    const classes = merge(
+      className,
+      withClassPrefix({
+        'has-month': hasMonth,
+        'has-time': showTime
+      })
+    );
 
     return (
-      <div {...unhandled} className={classes}>
+      <Component {...rest} ref={ref} role="row" className={classes}>
         {hasMonth && monthToolbar}
         {showTime && (
-          <div className={this.addPrefix('time-toolbar')}>
+          <div className={prefix('time-toolbar')}>
             <span
               role="button"
               tabIndex={-1}
               className={timeTitleClasses}
               onClick={onToggleTimeDropdown}
             >
-              {date && <FormattedDate date={date} formatStr={this.getTimeFormat()} />}
+              {date && <FormattedDate date={date} formatStr={getTimeFormat()} />}
             </span>
 
-            {showMeridian ? (
+            {showMeridian && (
               <span
                 role="button"
                 tabIndex={-1}
-                className={this.addPrefix('meridian')}
+                className={prefix('meridian')}
                 onClick={onToggleMeridian}
               >
                 {date && <FormattedDate date={date} formatStr="a" />}
               </span>
-            ) : null}
+            )}
           </div>
         )}
 
         {renderToolbar?.(date)}
-      </div>
+      </Component>
     );
   }
-}
+);
 
-const enhance = defaultProps<HeaderProps>({
-  classPrefix: 'calendar-header'
-});
-export default enhance(Header);
+Header.displayName = 'Header';
+Header.propTypes = {
+  className: PropTypes.string,
+  classPrefix: PropTypes.string,
+  disabledBackward: PropTypes.bool,
+  disabledForward: PropTypes.bool,
+  disabledTime: PropTypes.func,
+  onMoveBackward: PropTypes.func,
+  onMoveForward: PropTypes.func,
+  onToggleMeridian: PropTypes.func,
+  onToggleMonthDropdown: PropTypes.func,
+  onToggleTimeDropdown: PropTypes.func,
+  renderTitle: PropTypes.func,
+  renderToolbar: PropTypes.func,
+  showDate: PropTypes.bool,
+  showMeridian: PropTypes.bool,
+  showMonth: PropTypes.bool,
+  showTime: PropTypes.bool
+};
+Header.defaultProps = defaultProps;
+
+export default Header;

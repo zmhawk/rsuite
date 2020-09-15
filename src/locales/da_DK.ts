@@ -48,7 +48,8 @@ export default {
     noResultsText: 'Ingen resultater fundet',
     placeholder: 'Vælg',
     searchPlaceholder: 'Søg',
-    checkAll: 'Alle'
+    checkAll: 'Alle',
+    loading: 'Indlæser...'
   },
   Input: {
     emptyPlaintext: 'ubesatte'
@@ -64,5 +65,8 @@ export default {
     complete: 'Færdig',
     emptyFile: 'Tom',
     upload: 'Upload'
+  },
+  CloseButton: {
+    closeLabel: 'lukke ned'
   }
 };

@@ -1,94 +1,89 @@
 import React, { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import get from 'lodash/get';
-import { StandardProps } from '../@types/common';
 import ToggleButton, { ToggleButtonProps } from './ToggleButton';
+import CloseButton from '../CloseButton';
 import { createChainedFunction, useClassNames } from '../utils';
+import { RsRefForwardingComponent } from '../@types/common';
 
-export interface PickerToggleProps extends StandardProps, ToggleButtonProps {
-  classPrefix?: string;
+export interface PickerToggleProps extends ToggleButtonProps {
   hasValue?: boolean;
   cleanable?: boolean;
-  className?: string;
   caret?: boolean;
-  onClean?: (event: React.MouseEvent) => void;
-  cleanButtonTitle?: string;
   active?: boolean;
+  disabled?: boolean;
   tabIndex?: number;
+  onClean?: (event: React.MouseEvent) => void;
 }
 
-const PickerToggle = React.forwardRef(
-  (props: PickerToggleProps, ref: React.Ref<HTMLButtonElement>) => {
-    const {
-      active,
-      as: Component = ToggleButton,
-      classPrefix = 'picker-toggle',
-      children,
-      caret = true,
-      className,
-      hasValue,
-      cleanable,
-      tabIndex = 0,
-      cleanButtonTitle,
-      onClean,
-      ...rest
-    } = props;
+const PickerToggle: RsRefForwardingComponent<
+  typeof ToggleButton,
+  PickerToggleProps
+> = React.forwardRef((props: PickerToggleProps, ref) => {
+  const {
+    active: activeProp,
+    as: Component = ToggleButton,
+    classPrefix = 'picker-toggle',
+    children,
+    caret = true,
+    className,
+    disabled,
+    hasValue,
+    cleanable,
+    tabIndex = 0,
+    onClean,
+    onFocus,
+    onBlur,
+    ...rest
+  } = props;
 
-    const [activeState, setActive] = useState(false);
-    const { withClassPrefix, merge, prefix } = useClassNames(classPrefix);
+  const [activeState, setActive] = useState(false);
+  const { withClassPrefix, merge, prefix } = useClassNames(classPrefix);
 
-    const classes = merge(
-      className,
-      withClassPrefix({
-        active: active || activeState
-      })
-    );
+  const classes = merge(
+    className,
+    withClassPrefix({
+      active: activeProp || activeState
+    })
+  );
 
-    const handleFocus = useCallback(() => {
-      setActive(true);
-    }, []);
+  const handleFocus = useCallback(() => {
+    setActive(true);
+  }, []);
 
-    const handleBlur = useCallback(() => {
-      setActive(false);
-    }, []);
+  const handleBlur = useCallback(() => {
+    setActive(false);
+  }, []);
 
-    const handleClean = useCallback(
-      (event: React.MouseEvent<HTMLSpanElement>) => {
-        event.stopPropagation();
-        onClean?.(event);
-        handleBlur();
-      },
-      [onClean, handleBlur]
-    );
+  const handleClean = useCallback(
+    (event: React.MouseEvent<HTMLSpanElement>) => {
+      event.stopPropagation();
+      onClean?.(event);
+      handleBlur();
+    },
+    [onClean, handleBlur]
+  );
 
-    return (
-      <Component
-        role="combobox"
-        {...rest}
-        ref={ref}
-        tabIndex={tabIndex}
-        className={classes}
-        onFocus={createChainedFunction(handleFocus, get(rest, 'onFocus'))}
-        onBlur={createChainedFunction(handleBlur, get(rest, 'onBlur'))}
-      >
-        <span className={prefix(hasValue ? 'value' : 'placeholder')}>{children}</span>
-        {hasValue && cleanable && (
-          <span
-            className={prefix`clean`}
-            role="button"
-            tabIndex={-1}
-            onClick={handleClean}
-            title={cleanButtonTitle}
-            aria-label={cleanButtonTitle}
-          >
-            <span aria-hidden="true">×</span>
-          </span>
-        )}
-        {caret && <span className={prefix`caret`} />}
-      </Component>
-    );
-  }
-);
+  return (
+    <Component
+      role="combobox"
+      aria-haspopup
+      aria-expanded={activeProp}
+      aria-disabled={disabled}
+      {...rest}
+      ref={ref}
+      tabIndex={tabIndex}
+      className={classes}
+      onFocus={!disabled ? createChainedFunction(handleFocus, onFocus) : null}
+      onBlur={!disabled ? createChainedFunction(handleBlur, onBlur) : null}
+    >
+      <span className={prefix(hasValue ? 'value' : 'placeholder')}>{children}</span>
+      {hasValue && cleanable && (
+        <CloseButton className={prefix`clean`} tabIndex={-1} onClick={handleClean} />
+      )}
+      {caret && <span className={prefix`caret`} aria-hidden="true" />}
+    </Component>
+  );
+});
 
 PickerToggle.displayName = 'PickerToggle';
 PickerToggle.propTypes = {

@@ -2,34 +2,47 @@
 
 Used to display the current page path and quickly return to the history page.
 
-- `<Breadcrumb>`
-- `<Breadcrumb.Item>`
+## Import
 
-## Usage
-
-```js
-import { Breadcrumb } from 'rsuite';
-```
+<!--{include:(components/breadcrumb/fragments/import.md)}-->
 
 ## Examples
 
-<!--{demo}-->
+### Default
+
+<!--{include:`basic.md`}-->
+
+### Custom separator
+
+<!--{include:`separator.md`}-->
+
+### With Expand
+
+Should automatically collapse if there are more than 5 items. Use `maxItems` to set the maximum number of breadcrumbs to display.
+
+<!--{include:`max-items.md`}-->
+
+### Used with `Link` in `next/link`
+
+<!--{include:`with-router.md`}-->
 
 ## Props
 
 ### `<Breadcrumb>`
 
-| Property    | Type `(Default)`                  | Description                                                                       |
-| ----------- | --------------------------------- | --------------------------------------------------------------------------------- |
-| classPrefix | string `('breadcrumb')`           | The prefix of the component CSS class                                             |
-| maxItems    | numner`(5)`                       | Set the maximum number of breadcrumbs to display                                  |
-| onExpand    | (event: React.MouseEvent) => void | A function to be called when you are in the collapsed view and click the ellipsis |
-| separator   | React.Node `('/')`                | Custom separator                                                                  |
+| Property    | Type `(Default)`            | Description                                                                       |
+| ----------- | --------------------------- | --------------------------------------------------------------------------------- |
+| as          | ElementType `('nav')`       | You can use a custom element type for this component.                             |
+| classPrefix | string `('breadcrumb')`     | The prefix of the component CSS class                                             |
+| maxItems    | numner`(5)`                 | Set the maximum number of breadcrumbs to display                                  |
+| onExpand    | (event: MouseEvent) => void | A function to be called when you are in the collapsed view and click the ellipsis |
+| separator   | ReactNode `('/')`           | Custom separator                                                                  |
 
 ### `<Breadcrumb.Item>`
 
-| Property   | Type `(Default)`                | Description                                     |
-| ---------- | ------------------------------- | ----------------------------------------------- |
-| active     | boolean                         | Active state                                    |
-| as         | React.ElementType `('ol')`      | You can use a custom element for this component |
-| renderItem | (item:React.Node) => React.Node | Custom rendering item                           |
+| Property   | Type `(Default)`              | Description                                           |
+| ---------- | ----------------------------- | ----------------------------------------------------- |
+| active     | boolean                       | Active state                                          |
+| as         | ElementType `('li')`          | You can use a custom element type for this component. |
+| linkAs     | ElementType `('a')`           | You can use a custom element for this link.           |
+| renderItem | (item:ReactNode) => ReactNode | Custom rendering item                                 |

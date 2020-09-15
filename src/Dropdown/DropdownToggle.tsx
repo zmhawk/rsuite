@@ -1,73 +1,74 @@
-import * as React from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
-import classNames from 'classnames';
-
 import Ripple from '../Ripple';
 import Button from '../Button';
-import { prefix, defaultProps } from '../utils';
-import { IconProps } from '../Icon/Icon.d';
+import { useClassNames } from '../utils';
+import { IconProps } from '../Icon';
+import { WithAsProps, RsRefForwardingComponent } from '../@types/common';
 
-export interface DorpdownToggleProps {
-  className?: string;
-  classPrefix?: string;
-  children?: React.ReactNode;
+export interface DropdownToggleProps extends WithAsProps {
   icon?: React.ReactElement<IconProps>;
   noCaret?: boolean;
-  as: React.ElementType;
   renderTitle?: (children?: React.ReactNode) => React.ReactNode;
 }
 
-class DorpdownToggle extends React.Component<DorpdownToggleProps> {
-  static propTypes = {
-    className: PropTypes.string,
-    children: PropTypes.node,
-    icon: PropTypes.node,
-    classPrefix: PropTypes.string,
-    noCaret: PropTypes.bool,
-    as: PropTypes.elementType,
-    renderTitle: PropTypes.func
-  };
-  render() {
-    const {
-      className,
-      classPrefix,
-      renderTitle,
-      children,
-      icon,
-      noCaret,
-      as: Component,
-      ...props
-    } = this.props;
-    const addPrefix = prefix(classPrefix);
+const defaultProps: Partial<DropdownToggleProps> = {
+  as: Button,
+  classPrefix: 'dropdown-toggle'
+};
 
-    if (renderTitle) {
-      return (
-        <span {...props} className={classNames(classPrefix, addPrefix('custom-title'), className)}>
-          {renderTitle(children)}
-          <Ripple />
-        </span>
-      );
-    }
+const DropdownToggle: RsRefForwardingComponent<
+  typeof Button,
+  DropdownToggleProps
+> = React.forwardRef((props: DropdownToggleProps, ref) => {
+  const {
+    as: Component,
+    className,
+    classPrefix,
+    renderTitle,
+    children,
+    icon,
+    noCaret,
+    ...rest
+  } = props;
+  const { prefix, withClassPrefix, merge } = useClassNames(classPrefix);
 
-    let buttonProps = {};
-    if (Component === Button) {
-      buttonProps = {
-        as: 'a',
-        appearance: 'subtle'
-      };
-    }
-
+  const classes = merge(
+    className,
+    withClassPrefix({
+      'custom-title': typeof renderTitle === 'function'
+    })
+  );
+  if (renderTitle) {
     return (
-      <Component {...buttonProps} {...props} className={classNames(classPrefix, className)}>
-        {icon}
-        {children}
-        {noCaret ? null : <span className={addPrefix('caret')} />}
+      <Component {...rest} ref={ref} className={classes}>
+        {renderTitle(children)}
+        <Ripple />
       </Component>
     );
   }
-}
 
-export default defaultProps<DorpdownToggleProps>({
-  as: Button,
-  classPrefix: 'dropdown-toggle'
-})(DorpdownToggle);
+  const buttonProps = Component === Button ? { as: 'a', appearance: 'subtle' } : null;
+
+  return (
+    <Component {...buttonProps} {...rest} ref={ref} className={classes}>
+      {icon}
+      {children}
+      {noCaret ? null : <span className={prefix('caret')} />}
+    </Component>
+  );
+});
+
+DropdownToggle.displayName = 'DropdownToggle';
+DropdownToggle.defaultProps = defaultProps;
+DropdownToggle.propTypes = {
+  className: PropTypes.string,
+  children: PropTypes.node,
+  icon: PropTypes.node,
+  classPrefix: PropTypes.string,
+  noCaret: PropTypes.bool,
+  as: PropTypes.elementType,
+  renderTitle: PropTypes.func
+};
+
+export default DropdownToggle;

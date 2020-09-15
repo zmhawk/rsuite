@@ -44,7 +44,8 @@ export default {
     noResultsText: 'لا يوجد نتائج',
     placeholder: 'إختيار',
     searchPlaceholder: 'البحث',
-    checkAll: 'الجميع'
+    checkAll: 'الجميع',
+    loading: 'جاري التحميل...'
   },
   Input: {
     emptyPlaintext: 'شاغرة'
@@ -60,5 +61,8 @@ export default {
     complete: 'تم الإنتهاء',
     emptyFile: 'فارغ',
     upload: 'رفع'
+  },
+  CloseButton: {
+    closeLabel: 'اغلق'
   }
 };

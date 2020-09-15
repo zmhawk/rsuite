@@ -32,10 +32,9 @@ const data = [
 
 describe('CheckPicker', () => {
   it('Should clean selected default value', () => {
-    const instance = getDOMNode(<Dropdown defaultOpen data={data} defaultValue={['Eugenia']} />);
-
-    ReactTestUtils.Simulate.click(instance.querySelector(cleanClassName));
-    expect(instance.querySelector(placeholderClassName).innerText).to.equal('Select');
+    const instance = getInstance(<Dropdown defaultOpen data={data} defaultValue={['Eugenia']} />);
+    ReactTestUtils.Simulate.click(instance.root.querySelector(cleanClassName));
+    expect(instance.root.querySelector(placeholderClassName).innerText).to.equal('Select');
   });
 
   it('Should not clean selected value', () => {
@@ -323,5 +322,26 @@ describe('CheckPicker', () => {
     const list = instance.menu.querySelectorAll('.rs-check-item');
     assert.equal(list.length, 1);
     assert.ok(list[0].innerText, 'Louisa');
+  });
+
+  describe('ref testing', () => {
+    it('Should call onOpen', done => {
+      const doneOp = () => {
+        done();
+      };
+
+      const instance = getInstance(<Dropdown onOpen={doneOp} data={data} />);
+      instance.open();
+    });
+
+    it('Should call onClose', done => {
+      const doneOp = () => {
+        done();
+      };
+
+      const instance = getInstance(<Dropdown onClose={doneOp} data={data} />);
+      instance.open();
+      instance.close();
+    });
   });
 });

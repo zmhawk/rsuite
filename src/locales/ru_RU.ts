@@ -47,7 +47,8 @@ export default {
     noResultsText: 'Результаты не найдены',
     placeholder: 'Выбрать',
     searchPlaceholder: 'Поиск',
-    checkAll: 'Все'
+    checkAll: 'Все',
+    loading: 'Загрузка...'
   },
   InputPicker: {
     newItem: 'Новый',
@@ -60,5 +61,8 @@ export default {
     complete: 'Завершенно',
     emptyFile: 'Пусто',
     upload: 'Загрузить'
+  },
+  CloseButton: {
+    closeLabel: 'неисправность'
   }
 };

@@ -48,7 +48,8 @@ export default {
     noResultsText: 'Nessun risultato trovato',
     placeholder: 'Seleziona',
     searchPlaceholder: 'Cerca',
-    checkAll: 'Tutti'
+    checkAll: 'Tutti',
+    loading: 'Caricamento in corso...'
   },
   Input: {
     emptyPlaintext: 'vacanti'
@@ -64,5 +65,8 @@ export default {
     complete: 'Completato',
     emptyFile: 'Vuoto',
     upload: 'Carica'
+  },
+  CloseButton: {
+    closeLabel: 'spegnimento'
   }
 };

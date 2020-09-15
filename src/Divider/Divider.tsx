@@ -1,36 +1,47 @@
-import * as React from 'react';
-import classNames from 'classnames';
+import React from 'react';
 import PropTypes from 'prop-types';
-import { defaultProps, prefix } from '../utils';
-import { DividerProps } from './Divider.d';
+import { useClassNames } from '../utils';
+import { WithAsProps, RsRefForwardingComponent } from '../@types/common';
 
-class Divider extends React.Component<DividerProps> {
-  static propTypes = {
-    className: PropTypes.string,
-    vertical: PropTypes.bool,
-    classPrefix: PropTypes.string,
-    children: PropTypes.node,
-    as: PropTypes.elementType
-  };
-  render() {
-    const { vertical, as: Component, className, children, classPrefix, ...props } = this.props;
+export interface DividerProps extends WithAsProps {
+  /**
+   * Vertical dividing line. Cannot be used with text.
+   */
+  vertical?: boolean;
+}
 
-    const addPrefix = prefix(classPrefix);
-    const classes = classNames(classPrefix, className, {
-      [addPrefix('vertical')]: vertical,
-      [addPrefix('horizontal')]: !vertical,
-      [addPrefix('with-text')]: !!children
-    });
+const defaultProps: Partial<DividerProps> = {
+  classPrefix: 'divider',
+  as: 'div'
+};
+
+const Divider: RsRefForwardingComponent<'div', DividerProps> = React.forwardRef(
+  (props: DividerProps, ref) => {
+    const { as: Component, className, classPrefix, children, vertical, ...rest } = props;
+    const { prefix, withClassPrefix, merge } = useClassNames(classPrefix);
+    const classes = merge(
+      className,
+      withClassPrefix(vertical ? 'vertical' : 'horizontal', {
+        'with-text': children
+      })
+    );
 
     return (
-      <Component {...props} className={classes}>
-        {children ? <span className={addPrefix('inner-text')}>{children}</span> : null}
+      <Component role="separator" {...rest} ref={ref} className={classes}>
+        {children && <span className={prefix('inner-text')}>{children}</span>}
       </Component>
     );
   }
-}
+);
 
-export default defaultProps<DividerProps>({
-  as: 'div',
-  classPrefix: 'divider'
-})(Divider);
+Divider.displayName = 'Divider';
+Divider.defaultProps = defaultProps;
+Divider.propTypes = {
+  as: PropTypes.elementType,
+  className: PropTypes.string,
+  classPrefix: PropTypes.string,
+  children: PropTypes.node,
+  vertical: PropTypes.bool
+};
+
+export default Divider;

@@ -4,11 +4,10 @@ import { addStyle, getWidth } from 'dom-lib';
 import { useElementResize, useClassNames } from '../utils';
 import getDOMNode from '../utils/getDOMNode';
 import mergeRefs from '../utils/mergeRefs';
-import { StandardProps } from '../@types/common';
-
+import { WithAsProps, RsRefForwardingComponent } from '../@types/common';
+import { OverlayTriggerInstance } from '../Picker/PickerToggleTrigger';
 const omitProps = [
   'placement',
-  'shouldUpdatePosition',
   'arrowOffsetLeft',
   'arrowOffsetTop',
   'positionLeft',
@@ -29,57 +28,53 @@ const resizePlacement = [
   'autoHorizontalEnd'
 ];
 
-export interface MenuWrapperProps extends StandardProps {
+export interface MenuWrapperProps extends WithAsProps {
   placement?: string;
   autoWidth?: boolean;
   children?: React.ReactNode;
-  getPositionInstance?: () => any;
-  getToggleInstance?: () => HTMLElement;
+  target?: React.RefObject<OverlayTriggerInstance>;
   onKeyDown?: (event: React.KeyboardEvent) => void;
 }
 
-const MenuWrapper = React.forwardRef((props: MenuWrapperProps, ref: React.Ref<HTMLDivElement>) => {
-  const {
-    as: Component = 'div',
-    classPrefix = 'picker-menu',
-    autoWidth,
-    className,
-    placement,
-    getPositionInstance,
-    getToggleInstance,
-    ...rest
-  } = props;
+const MenuWrapper: RsRefForwardingComponent<'div', MenuWrapperProps> = React.forwardRef(
+  (props: MenuWrapperProps, ref) => {
+    const {
+      as: Component = 'div',
+      classPrefix = 'picker-menu',
+      autoWidth,
+      className,
+      placement,
+      target,
+      ...rest
+    } = props;
 
-  const menuElementRef = useRef();
-  const handleResize = useCallback(() => {
-    const instance = getPositionInstance?.();
-    if (instance && resizePlacement.includes(placement)) {
-      instance.updatePosition(true);
-    }
-  }, [getPositionInstance, placement]);
+    const menuRef = useRef();
+    const handleResize = useCallback(() => {
+      const instance = target.current;
+      if (instance && resizePlacement.includes(placement)) {
+        instance.updatePosition();
+      }
+    }, [target, placement]);
 
-  useElementResize(() => menuElementRef.current, handleResize);
-  useEffect(() => {
-    const toggle = getToggleInstance?.();
-    if (autoWidth && toggle) {
-      // Get the width value of the button,
-      // and then set it to the menu to make their width consistent.
-      const width = getWidth(getDOMNode(toggle));
-      addStyle(menuElementRef.current, 'min-width', `${width}px`);
-    }
-  }, [autoWidth, getToggleInstance, menuElementRef]);
+    useElementResize(() => menuRef.current, handleResize);
+    useEffect(() => {
+      const toggle = target.current;
+      if (autoWidth && toggle.child) {
+        // Get the width value of the button,
+        // and then set it to the menu to make their width consistent.
+        const width = getWidth(getDOMNode(toggle.child));
+        addStyle(menuRef.current, 'min-width', `${width}px`);
+      }
+    }, [autoWidth, target, menuRef]);
 
-  const { withClassPrefix, merge } = useClassNames(classPrefix);
-  const classes = merge(className, withClassPrefix());
+    const { withClassPrefix, merge } = useClassNames(classPrefix);
+    const classes = merge(className, withClassPrefix());
 
-  return (
-    <Component
-      {...omit(rest, omitProps)}
-      ref={mergeRefs(menuElementRef, ref)}
-      className={classes}
-    />
-  );
-});
+    return (
+      <Component {...omit(rest, omitProps)} ref={mergeRefs(menuRef, ref)} className={classes} />
+    );
+  }
+);
 
 MenuWrapper.displayName = 'MenuWrapper';
 

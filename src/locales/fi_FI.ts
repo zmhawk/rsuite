@@ -48,7 +48,8 @@ export default {
     noResultsText: 'Ei tuloksia',
     placeholder: 'Valitse',
     searchPlaceholder: 'Etsi',
-    checkAll: 'Kaikki'
+    checkAll: 'Kaikki',
+    loading: 'Hetkinen...'
   },
   Input: {
     emptyPlaintext: 'täyttämättömät'
@@ -64,5 +65,8 @@ export default {
     complete: 'Valmis',
     emptyFile: 'Tyhjä',
     upload: 'Lataa'
+  },
+  CloseButton: {
+    closeLabel: 'sammuttaa'
   }
 };

@@ -44,7 +44,8 @@ export default {
     noResultsText: 'No results found',
     placeholder: 'Select',
     searchPlaceholder: 'Search',
-    checkAll: 'All'
+    checkAll: 'All',
+    loading: 'Loading...'
   },
   Input: {
     emptyPlaintext: 'Unfilled'
@@ -60,5 +61,8 @@ export default {
     complete: 'Finished',
     emptyFile: 'Empty',
     upload: 'Upload'
+  },
+  CloseButton: {
+    closeLabel: 'Close'
   }
 };

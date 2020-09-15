@@ -48,7 +48,8 @@ export default {
     noResultsText: 'Inga resultat funna',
     placeholder: 'Välj',
     searchPlaceholder: 'Sök',
-    checkAll: 'Alla'
+    checkAll: 'Alla',
+    loading: 'Laddar...'
   },
   Input: {
     emptyPlaintext: 'Ofylld'
@@ -64,5 +65,8 @@ export default {
     complete: 'Färdig',
     emptyFile: 'Tom',
     upload: 'Ladda upp'
+  },
+  CloseButton: {
+    closeLabel: 'stänga av'
   }
 };

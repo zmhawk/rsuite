@@ -47,7 +47,8 @@ export default {
     noResultsText: '일치하지 않습니다',
     placeholder: '고르십시오',
     searchPlaceholder: '검색',
-    checkAll: '모두'
+    checkAll: '모두',
+    loading: '로딩...'
   },
   Input: {
     emptyPlaintext: '채워지지 않은'
@@ -63,5 +64,8 @@ export default {
     complete: '끝마친',
     emptyFile: '빈',
     upload: '업로드'
+  },
+  CloseButton: {
+    closeLabel: '종료'
   }
 };

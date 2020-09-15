@@ -1,28 +1,28 @@
-import * as React from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { getPosition, scrollTop } from 'dom-lib';
-import classNames from 'classnames';
-import _ from 'lodash';
-import FormattedMessage from '../IntlProvider/FormattedMessage';
-import { defaultProps, getUnhandledProps, prefix } from '../utils';
+import partial from 'lodash/partial';
+import camelCase from 'lodash/camelCase';
+import isNumber from 'lodash/isNumber';
+
+import { useClassNames } from '../utils';
 import {
   getHours,
   getMinutes,
   getSeconds,
+  omitHideDisabledProps,
   setHours,
   setMinutes,
   setSeconds
 } from '../utils/dateUtils';
 import scrollTopAnimation from '../utils/scrollTopAnimation';
 import { zonedDate } from '../utils/timeZone';
+import { useCalendarContext } from './CalendarContext';
+import { CalendarInnerContextValue } from './types';
+import { RsRefForwardingComponent, WithAsProps } from '../@types/common';
 
-export interface TimeDropdownProps {
-  date?: Date;
-  show: boolean;
-  format?: string;
-  timeZone?: string;
-  className?: string;
-  classPrefix?: string;
+export interface TimeDropdownProps extends WithAsProps {
+  show?: boolean;
   showMeridian?: boolean;
   disabledDate?: (date: Date) => boolean;
   disabledHours?: (hour: number, date: Date) => boolean;
@@ -31,8 +31,13 @@ export interface TimeDropdownProps {
   hideHours?: (hour: number, date: Date) => boolean;
   hideMinutes?: (minute: number, date: Date) => boolean;
   hideSeconds?: (second: number, date: Date) => boolean;
-  onSelect?: (nextDate: Date, event: React.MouseEvent) => void;
 }
+
+const defaultProps: Partial<TimeDropdownProps> = {
+  show: false,
+  classPrefix: 'calendar-time-dropdown',
+  as: 'div'
+};
 
 type TimeType = 'hours' | 'minutes' | 'seconds';
 
@@ -44,177 +49,173 @@ function getRanges(meridian) {
   };
 }
 
-export function getMeridianHours(hours) {
+export function getMeridianHours(hours: number): number {
   return hours >= 12 ? hours - 12 : hours;
 }
 
-class TimeDropdown extends React.PureComponent<TimeDropdownProps> {
-  static propTypes = {
-    date: PropTypes.instanceOf(Date),
-    show: PropTypes.bool,
-    showMeridian: PropTypes.bool,
-    format: PropTypes.string,
-    timeZone: PropTypes.string,
-    className: PropTypes.string,
-    classPrefix: PropTypes.string,
-    disabledDate: PropTypes.func,
-    disabledHours: PropTypes.func,
-    disabledMinutes: PropTypes.func,
-    disabledSeconds: PropTypes.func,
-    hideHours: PropTypes.func,
-    hideMinutes: PropTypes.func,
-    hideSeconds: PropTypes.func,
-    onSelect: PropTypes.func
-  };
-  static defaultProps = {
-    show: false
-  };
+interface Time {
+  hours?: number;
+  minutes?: number;
+  seconds?: number;
+}
 
-  container = {};
+const getTime = (props: Partial<TimeDropdownProps> & Partial<CalendarInnerContextValue>): Time => {
+  const { format, timeZone, date, showMeridian } = props;
+  const time = date || zonedDate(timeZone);
+  const nextTime = {} as Time;
 
-  componentDidMount() {
-    this.updatePosition();
-  }
-
-  componentDidUpdate() {
-    this.updatePosition();
-  }
-
-  getTime(props?: TimeDropdownProps): any {
-    const { format, timeZone, date, showMeridian } = props || this.props;
-    const time = date || zonedDate(timeZone);
-    const nextTime: any = {};
-
-    if (!format) {
-      return nextTime;
-    }
-
-    if (/(H|h)/.test(format)) {
-      const hours = getHours(time);
-      nextTime.hours = showMeridian ? getMeridianHours(hours) : hours;
-    }
-    if (/m/.test(format)) {
-      nextTime.minutes = getMinutes(time);
-    }
-    if (/s/.test(format)) {
-      nextTime.seconds = getSeconds(time);
-    }
+  if (!format) {
     return nextTime;
   }
 
-  updatePosition(props?: TimeDropdownProps) {
-    const { show } = props || this.props;
-    const time = this.getTime(props);
-    show && this.scrollTo(time);
+  if (/(H|h)/.test(format)) {
+    const hours = getHours(time);
+    nextTime.hours = showMeridian ? getMeridianHours(hours) : hours;
+  }
+  if (/m/.test(format)) {
+    nextTime.minutes = getMinutes(time);
+  }
+  if (/s/.test(format)) {
+    nextTime.seconds = getSeconds(time);
+  }
+  return nextTime;
+};
+
+const scrollTo = (time: Time, row: HTMLDivElement) => {
+  if (!row) {
+    return;
   }
 
-  scrollTo = (time: any) => {
-    Object.entries(time).forEach((item: any) => {
-      const container: Element = this.container[item[0]];
-      const node = container.querySelector(`[data-key="${item[0]}-${item[1]}"]`);
-      if (node && container) {
-        const { top } = getPosition(node, container);
-        scrollTopAnimation(this.container[item[0]], top, scrollTop(this.container[item[0]]) !== 0);
+  Object.entries(time).forEach(([type, value]: [string, number]) => {
+    const container: Element = row.querySelector(`[data-type="${type}"]`);
+    const node = container?.querySelector(`[data-key="${type}-${value}"]`);
+
+    if (node && container) {
+      const { top } = getPosition(node, container);
+      scrollTopAnimation(container, top, scrollTop(container) !== 0);
+    }
+  });
+};
+
+const TimeDropdown: RsRefForwardingComponent<'div', TimeDropdownProps> = React.forwardRef(
+  (props: TimeDropdownProps, ref) => {
+    const { as: Component, className, classPrefix, show, showMeridian, ...rest } = props;
+    const { locale, format, timeZone, date, onChangePageTime: onSelect } = useCalendarContext();
+    const rowRef = useRef<HTMLDivElement>(null);
+
+    const updatePosition = useCallback(() => {
+      const time = getTime({
+        format,
+        timeZone,
+        date,
+        showMeridian
+      });
+      show && scrollTo(time, rowRef.current);
+    }, [show, format, timeZone, date, showMeridian]);
+
+    const handleClick = (type: TimeType, d: number, event: React.MouseEvent) => {
+      let nextDate = date || new Date();
+
+      switch (type) {
+        case 'hours':
+          nextDate = setHours(date, d);
+          break;
+        case 'minutes':
+          nextDate = setMinutes(date, d);
+          break;
+        case 'seconds':
+          nextDate = setSeconds(date, d);
+          break;
       }
-    });
-  };
 
-  handleClick = (type: TimeType, d: number, event: React.MouseEvent) => {
-    const { onSelect, date } = this.props;
-    // $FlowFixMe
-    let nextDate = date || new Date();
+      onSelect?.(nextDate, event);
+    };
 
-    switch (type) {
-      case 'hours':
-        nextDate = setHours(date, d);
-        break;
-      case 'minutes':
-        nextDate = setMinutes(date, d);
-        break;
-      case 'seconds':
-        nextDate = setSeconds(date, d);
-        break;
-    }
+    const { prefix, rootPrefix, merge } = useClassNames(classPrefix);
 
-    onSelect?.(nextDate, event);
-  };
-
-  addPrefix = (name: string) => prefix(this.props.classPrefix)(name);
-
-  renderColumn(type: TimeType, active: any) {
-    const { showMeridian } = this.props;
-    if (!_.isNumber(active)) {
-      return null;
-    }
-    const { date } = this.props;
-    const { start, end } = getRanges(showMeridian)[type];
-    const items = [];
-
-    const hideFunc = this.props[_.camelCase(`hide_${type}`)];
-    const disabledFunc = this.props[_.camelCase(`disabled_${type}`)];
-
-    for (let i = start; i <= end; i += 1) {
-      if (!hideFunc?.(i, date)) {
-        const disabled = disabledFunc?.(i, date);
-        const itemClasses = classNames(this.addPrefix('cell'), {
-          [this.addPrefix('cell-active')]: active === i,
-          [this.addPrefix('cell-disabled')]: disabled
-        });
-
-        items.push(
-          <li key={i}>
-            <a
-              role="menu"
-              className={itemClasses}
-              tabIndex={-1}
-              data-key={`${type}-${i}`}
-              onClick={!disabled ? this.handleClick.bind(this, type, i) : null}
-            >
-              {showMeridian && type === 'hours' && i === 0 ? '12' : i}
-            </a>
-          </li>
-        );
+    const renderColumn = (type: TimeType, active: any) => {
+      if (!isNumber(active)) {
+        return null;
       }
-    }
+      const { start, end } = getRanges(showMeridian)[type];
+      const items = [];
+      const hideFunc = props[camelCase(`hide_${type}`)];
+      const disabledFunc = props[camelCase(`disabled_${type}`)];
 
-    return (
-      <div className={this.addPrefix('column')}>
-        <div className={this.addPrefix('column-title')}>
-          <FormattedMessage id={type} />
+      for (let i = start; i <= end; i += 1) {
+        if (!hideFunc?.(i, date)) {
+          const disabled = disabledFunc?.(i, date);
+          const itemClasses = merge(prefix('cell'), {
+            [prefix('cell-active')]: active === i,
+            [prefix('cell-disabled')]: disabled
+          });
+
+          items.push(
+            <li key={i} role="menuitem">
+              <a
+                role="button"
+                className={itemClasses}
+                tabIndex={-1}
+                data-key={`${type}-${i}`}
+                onClick={!disabled ? partial(handleClick, type, i) : null}
+              >
+                {showMeridian && type === 'hours' && i === 0 ? '12' : i}
+              </a>
+            </li>
+          );
+        }
+      }
+
+      return (
+        <div className={prefix('column')} role="listitem">
+          <div className={prefix('column-title')}>{locale?.[type]}</div>
+          <ul data-type={type} role="menu">
+            {items}
+          </ul>
         </div>
-        <ul
-          ref={ref => {
-            this.container[type] = ref;
-          }}
-        >
-          {items}
-        </ul>
-      </div>
-    );
-  }
+      );
+    };
 
-  render() {
-    const { className, classPrefix, ...rest } = this.props;
-    const time = this.getTime();
-    const classes = classNames(classPrefix, className);
-    const unhandled = getUnhandledProps(TimeDropdown, rest);
+    const time = getTime({ format, timeZone, date, showMeridian });
+    const classes = merge(className, rootPrefix(classPrefix));
+
+    useEffect(() => {
+      updatePosition();
+    }, [updatePosition]);
 
     return (
-      <div {...unhandled} className={classes}>
-        <div className={this.addPrefix('content')}>
-          <div className={this.addPrefix('row')}>
-            {this.renderColumn('hours', time.hours)}
-            {this.renderColumn('minutes', time.minutes)}
-            {this.renderColumn('seconds', time.seconds)}
+      <Component
+        {...omitHideDisabledProps<TimeDropdownProps>(rest)}
+        ref={ref}
+        className={classes}
+        role="list"
+      >
+        <div className={prefix('content')}>
+          <div className={prefix('row')} ref={rowRef}>
+            {renderColumn('hours', time.hours)}
+            {renderColumn('minutes', time.minutes)}
+            {renderColumn('seconds', time.seconds)}
           </div>
         </div>
-      </div>
+      </Component>
     );
   }
-}
+);
 
-const enhance = defaultProps<TimeDropdownProps>({
-  classPrefix: 'calendar-time-dropdown'
-});
+TimeDropdown.displayName = 'TimeDropdown';
+TimeDropdown.propTypes = {
+  show: PropTypes.bool,
+  showMeridian: PropTypes.bool,
+  className: PropTypes.string,
+  classPrefix: PropTypes.string,
+  disabledDate: PropTypes.func,
+  disabledHours: PropTypes.func,
+  disabledMinutes: PropTypes.func,
+  disabledSeconds: PropTypes.func,
+  hideHours: PropTypes.func,
+  hideMinutes: PropTypes.func,
+  hideSeconds: PropTypes.func
+};
+TimeDropdown.defaultProps = defaultProps;
 
-export default enhance(TimeDropdown);
+export default TimeDropdown;
